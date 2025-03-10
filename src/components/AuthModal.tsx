@@ -33,16 +33,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode }) =
         toast.success('Account created successfully. You can now sign in.');
         onClose();
       } else if (mode === 'signin') {
-        // Try to find the user by username
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', username)
-          .single();
-
-        if (profileError) {
-          throw new Error('Invalid username or password');
-        }
+        // Sign in directly with email format
+        const emailFromUsername = `${username.toLowerCase()}@placeholder.com`;
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailFromUsername,
+          password,
+        });
+        
+        if (error) throw error;
+        toast.success('Successfully signed in');
+        onClose();
+      }
 
         // Sign in with the corresponding user
         const { error } = await supabase.auth.signInWithPassword({
