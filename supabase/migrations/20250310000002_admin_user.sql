@@ -62,4 +62,41 @@ WHERE table_name = 'profiles';
 SELECT relation::regclass, mode, granted
 FROM pg_locks l
 JOIN pg_class c ON c.oid = l.relation
-WHERE c.relname = 'profiles'; 
+WHERE c.relname = 'profiles';
+
+-- Complete the check for the profiles table structure
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'profiles';
+
+-- Check if admin user exists in auth.users
+SELECT id, email, raw_user_meta_data 
+FROM auth.users 
+WHERE raw_user_meta_data->>'username' = 'FOTFAdminDev';
+
+-- Check if admin profile exists
+SELECT id, username, is_admin 
+FROM public.profiles 
+WHERE username = 'FOTFAdminDev';
+
+-- Check RLS policies on profiles
+SELECT * FROM pg_policies 
+WHERE tablename = 'profiles';
+
+-- Ensure email is optional
+DO $$
+BEGIN
+  -- Make email optional if it's not already
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'profiles' 
+    AND column_name = 'email' 
+    AND is_nullable = 'NO'
+  ) THEN
+    ALTER TABLE public.profiles ALTER COLUMN email DROP NOT NULL;
+    RAISE NOTICE 'Made email column optional';
+  END IF;
+END $$;
+
+-- Test the query that's causing the 500 error
+SELECT id FROM public.profiles WHERE username = 'FOTFAdminDev'; 
