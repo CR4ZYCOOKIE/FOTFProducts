@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode }) => {
+  const { login, signup } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,47 +21,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode }) =
 
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email: `${username}@placeholder.com`, // Using placeholder email for Supabase requirement
-          password,
-          options: {
-            data: {
-              username,
-            },
-          },
-        });
-        if (error) throw error;
+        await signup(username, password);
         toast.success('Account created successfully. You can now sign in.');
         onClose();
       } else if (mode === 'signin') {
-        // Sign in directly with email format
-        const emailFromUsername = `${username.toLowerCase()}@placeholder.com`;
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailFromUsername,
-          password,
-        });
-        
-        if (error) throw error;
-        toast.success('Successfully signed in');
-        onClose();
-      }
-
-        // Sign in with the corresponding user
-        const { error } = await supabase.auth.signInWithPassword({
-          email: `${username}@placeholder.com`, // Same placeholder used during signup
-          password,
-        });
-        
-        if (error) throw error;
+        await login(username, password);
         toast.success('Successfully signed in');
         onClose();
       } else if (mode === 'forgotPassword') {
-        toast.error('Password reset is not available with username-based authentication.');
+        toast.error('Password reset is not available. Please contact support.');
         onClose();
       }
-    } catch (error) {
-      toast.error(error.message);
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred');
     } finally {
       setLoading(false);
     }

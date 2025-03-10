@@ -1,36 +1,33 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext } from 'react';
+import { useAuth as useAuthHook, User } from '../lib/auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  error: string | null;
+  login: (username: string, password: string) => Promise<any>;
+  signup: (username: string, password: string) => Promise<any>;
+  logout: () => void;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: false,
+  error: null,
+  login: async () => ({}),
+  signup: async () => ({}),
+  logout: () => {},
+  isAuthenticated: false,
+  isAdmin: false,
+});
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const auth = useAuthHook();
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={auth}>
       {children}
     </AuthContext.Provider>
   );

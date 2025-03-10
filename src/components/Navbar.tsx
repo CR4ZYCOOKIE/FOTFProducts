@@ -1,51 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ShoppingCart, LogIn, LogOut, UserCircle } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
-  const { user } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgotPassword'>('signin');
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error checking admin status:', error);
-        return;
-      }
-
-      setIsAdmin(!!data?.is_admin);
-    };
-
-    if (user) {
-      checkAdminStatus();
-    } else {
-      setIsAdmin(false);
-    }
-  }, [user]);
 
   const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      toast.success('Signed out successfully');
-    } catch (error) {
-      toast.error('Error signing out');
-    }
+    logout();
+    toast.success('Successfully signed out');
   };
 
   const openAuthModal = (mode: 'signin' | 'signup' | 'forgotPassword') => {
@@ -74,7 +42,7 @@ const Navbar = () => {
         <div className="hidden md:flex items-center space-x-4">
           {user ? (
             <div className="flex items-center space-x-4">
-              <span className="text-white">{user.user_metadata.username || 'User'}</span>
+              <span className="text-white">{user.username}</span>
               <button
                 onClick={handleSignOut}
                 className="flex items-center text-white hover:text-gray-300"
