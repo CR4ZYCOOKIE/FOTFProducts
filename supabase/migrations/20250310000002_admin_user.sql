@@ -51,4 +51,15 @@ BEGIN
   VALUES (admin_user_id, 'FOTFAdminDev', true)
   ON CONFLICT (id) DO UPDATE
   SET is_admin = true, username = 'FOTFAdminDev';
-END $$; 
+END $$;
+
+-- Check the structure of the profiles table
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'profiles';
+
+-- Check for locks on the profiles table
+SELECT relation::regclass, mode, granted
+FROM pg_locks l
+JOIN pg_class c ON c.oid = l.relation
+WHERE c.relname = 'profiles'; 
