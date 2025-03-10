@@ -32,8 +32,8 @@ const AdminDashboard = () => {
     if (!user) return;
     
     const { data, error } = await supabase
-      .from('admin_users')
-      .select('is_super_admin')
+      .from('profiles')
+      .select('is_admin')
       .eq('id', user.id)
       .single();
 
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    setIsAdmin(!!data?.is_super_admin);
+    setIsAdmin(!!data?.is_admin);
     setLoading(false);
   };
 

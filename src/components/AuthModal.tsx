@@ -10,7 +10,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,32 +21,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode }) =
     try {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: `${username}@placeholder.com`, // Using placeholder email for Supabase requirement
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
-              email,
+              username,
             },
           },
         });
         if (error) throw error;
-        toast.success('Please check your email for the confirmation link');
+        toast.success('Account created successfully. You can now sign in.');
         onClose();
       } else if (mode === 'signin') {
+        // Try to find the user by username
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .single();
+
+        if (profileError) {
+          throw new Error('Invalid username or password');
+        }
+
+        // Sign in with the corresponding user
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: `${username}@placeholder.com`, // Same placeholder used during signup
           password,
         });
+        
         if (error) throw error;
         toast.success('Successfully signed in');
         onClose();
       } else if (mode === 'forgotPassword') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        });
-        if (error) throw error;
-        toast.success('Password reset instructions sent to your email');
+        toast.error('Password reset is not available with username-based authentication.');
         onClose();
       }
     } catch (error) {
@@ -74,14 +82,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode }) =
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-              Email
+            <label htmlFor="username" className="block text-sm font-medium text-gray-300">
+              Username
             </label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />

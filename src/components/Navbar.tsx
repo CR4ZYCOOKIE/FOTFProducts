@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Shield, User } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Menu, X, ShoppingCart, LogIn, LogOut, UserCircle } from 'lucide-react';
 import { AuthModal } from './AuthModal';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const { user } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgotPassword'>('signin');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+
+      setIsAdmin(!!data?.is_admin);
+    };
+
+    if (user) {
+      checkAdminStatus();
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -21,82 +48,115 @@ const Navbar = () => {
     }
   };
 
+  const openAuthModal = (mode: 'signin' | 'signup' | 'forgotPassword') => {
+    setAuthMode(mode);
+    setShowAuthModal(true);
+  };
+
   return (
-    <nav className="bg-gray-800 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <Shield className="h-8 w-8 text-indigo-500" />
-              <span className="ml-2 text-xl font-bold text-white">DayZ Premium</span>
-            </Link>
-          </div>
-          
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              <Link
-                to="/"
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+    <nav className="bg-gray-800 p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link to="/" className="text-white text-xl font-bold">FOTF Products</Link>
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex space-x-4">
+          <Link to="/" className="text-white hover:text-gray-300">Home</Link>
+          <Link to="/products" className="text-white hover:text-gray-300">Products</Link>
+          {user && (
+            <Link to="/dashboard" className="text-white hover:text-gray-300">Dashboard</Link>
+          )}
+          {isAdmin && (
+            <Link to="/admin" className="text-white hover:text-gray-300">Admin</Link>
+          )}
+        </div>
+        
+        {/* Authentication */}
+        <div className="hidden md:flex items-center space-x-4">
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <span className="text-white">{user.user_metadata.username || 'User'}</span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center text-white hover:text-gray-300"
               >
-                Home
-              </Link>
-              <Link
-                to="/products"
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Products
-              </Link>
-              {user && (
-                <Link
-                  to="/dashboard"
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Dashboard
-                </Link>
-              )}
-              {user ? (
-                <button
-                  onClick={handleSignOut}
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign Out
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      setAuthMode('signin');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                  >
-                    Sign Up
-                  </button>
-                </>
-              )}
+                <LogOut className="h-5 w-5 mr-1" />
+                Sign Out
+              </button>
             </div>
-          </div>
-          
-          <div className="md:hidden">
-            <button className="text-gray-400 hover:text-white p-2">
-              <Menu className="h-6 w-6" />
-            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="flex items-center text-white hover:text-gray-300"
+              >
+                <LogIn className="h-5 w-5 mr-1" />
+                Sign In
+              </button>
+              <button
+                onClick={() => openAuthModal('signup')}
+                className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
+              >
+                <UserCircle className="h-5 w-5 mr-1" />
+                Sign Up
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile menu button */}
+        <button
+          className="md:hidden text-white"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </div>
+      
+      {/* Mobile menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-gray-700 p-4 mt-2">
+          <div className="flex flex-col space-y-2">
+            <Link to="/" className="text-white hover:text-gray-300">Home</Link>
+            <Link to="/products" className="text-white hover:text-gray-300">Products</Link>
+            {user && (
+              <Link to="/dashboard" className="text-white hover:text-gray-300">Dashboard</Link>
+            )}
+            {isAdmin && (
+              <Link to="/admin" className="text-white hover:text-gray-300">Admin</Link>
+            )}
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="flex items-center text-white hover:text-gray-300"
+              >
+                <LogOut className="h-5 w-5 mr-1" />
+                Sign Out
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => openAuthModal('signin')}
+                  className="flex items-center text-white hover:text-gray-300"
+                >
+                  <LogIn className="h-5 w-5 mr-1" />
+                  Sign In
+                </button>
+                <button
+                  onClick={() => openAuthModal('signup')}
+                  className="flex items-center text-white hover:text-gray-300"
+                >
+                  <UserCircle className="h-5 w-5 mr-1" />
+                  Sign Up
+                </button>
+              </>
+            )}
           </div>
         </div>
-      </div>
-
+      )}
+      
       <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
         mode={authMode}
       />
     </nav>

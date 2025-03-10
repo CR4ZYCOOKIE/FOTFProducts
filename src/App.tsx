@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import { useAuth } from './contexts/AuthContext';
 import { Shield, Swords, Users } from 'lucide-react';
+import { supabase } from './lib/supabase';
 
 const products = [
   {
@@ -51,6 +52,30 @@ const products = [
 
 function App() {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+
+      setIsAdmin(!!data?.is_admin);
+    };
+
+    if (user) {
+      checkAdminStatus();
+    }
+  }, [user]);
 
   return (
     <Router>
@@ -60,7 +85,11 @@ function App() {
           <Route path="/" element={<Home products={products} />} />
           <Route path="/products" element={<Products products={products} />} />
           {user && <Route path="/dashboard" element={<Dashboard />} />}
-          {user && <Route path="/admin" element={<AdminDashboard />} />}
+          {user && isAdmin ? (
+            <Route path="/admin" element={<AdminDashboard />} />
+          ) : (
+            <Route path="/admin" element={<Navigate to="/" />} />
+          )}
         </Routes>
         <Toaster position="bottom-right" />
       </div>
